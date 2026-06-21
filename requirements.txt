@@ -1,0 +1,10 @@
+pypdf==4.2.0
+langchain-text-splitters==0.2.0
+sentence-transformers==3.0.1
+chromadb==0.5.3
+rank_bm25==0.2.2
+google-genai==0.1.1
+fastapi==0.111.0
+uvicorn==0.30.1
+pydantic==2.7.4
+numpy==1.26.4
