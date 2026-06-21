@@ -1,23 +1,18 @@
-# src/features.py
-print("[DIAGNOSTIC] Starting features.py script execution...")
-
 import chromadb
 from chromadb.utils import embedding_functions
 from rank_bm25 import BM25Okapi
 import numpy as np
 
-print("[DIAGNOSTIC] All core libraries imported successfully.")
 
 class HybridSearchEngine:
     def __init__(self, db_path: str = "data/chroma_db", collection_name: str = "tech_docs"):
         """
-        Initializes Stage 2: Local persistent vector storage configuration
+        Initializes Stage: Local persistent vector storage configuration
         alongside a sparse keyword fallback registry.
         """
         print(f"[DIAGNOSTIC] Initializing ChromaDB client at: {db_path}")
         self.chroma_client = chromadb.PersistentClient(path=db_path)
         
-        print("[DIAGNOSTIC] Setting up local dense transformer function (all-MiniLM-L6-v2)...")
         self.embedding_fn = embedding_functions.SentenceTransformerEmbeddingFunction(
             model_name="all-MiniLM-L6-v2"
         )
@@ -41,13 +36,11 @@ class HybridSearchEngine:
         documents = [doc["text"] for doc in chunked_docs]
         metadatas = [doc["metadata"] for doc in chunked_docs]
         
-        print(f"[STAGE 2 LOG] Generating embeddings for {len(documents)} text blocks...")
+        print(f"Generating embeddings for {len(documents)} text blocks...")
         self.collection.add(ids=ids, documents=documents, metadatas=metadatas)
         
-        print("[STAGE 2 LOG] Building sparse token keyword-matching matrices...")
         tokenized_corpus = [doc.lower().split(" ") for doc in documents]
         self.bm25 = BM25Okapi(tokenized_corpus)
-        print("[STAGE 2 LOG] Storage indices successfully synchronized and saved.")
 
     def hybrid_retrieve(self, query: str, top_k: int = 3) -> list[dict]:
         """Executes hybrid search query routing."""
@@ -77,8 +70,7 @@ class HybridSearchEngine:
 
 # THIS BLOCK FORCES STANDALONE EXECUTION OUTPUTS
 if __name__ == "__main__":
-    print("\n--- STANDALONE BLOCK TRIGGERED ---")
     print("Testing Stage 2 Hybrid Search structures locally...")
     engine = HybridSearchEngine()
     print("Hybrid Search Engine structures initialized smoothly.")
-    print("-----------------------------------\n")
+    
