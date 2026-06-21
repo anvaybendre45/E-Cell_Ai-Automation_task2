@@ -1,12 +1,11 @@
 import streamlit as st
 import os
 from pypdf import PdfReader
-from langchain_text_splitters import RecursiveCharacterTextSplitter
 from google import genai
 
 st.set_page_config(page_title="RAG Documentation Chatbot", page_icon="🤖")
 st.title("🤖 Operational Docs Assistant")
-st.caption("Grounded interactive pipeline querying operational segments entirely in the cloud.")
+st.caption("Optimized lightweight contextual scanning pipeline.")
 
 # 1. Initialize Gemini Client
 api_key = os.environ.get("GEMINI_API_KEY") or st.secrets.get("GEMINI_API_KEY")
@@ -16,10 +15,10 @@ if not api_key:
 
 client = genai.Client(api_key=api_key)
 
-# 2. Extract Document Content cleanly
+# 2. Extract Document Content into manageable paragraphs
 @st.cache_resource
-def load_and_process_docs():
-    all_text = ""
+def load_and_chunk_docs():
+    paragraphs = []
     data_dir = "data"
     if os.path.exists(data_dir):
         for file in os.listdir(data_dir):
@@ -29,13 +28,18 @@ def load_and_process_docs():
                     for page in reader.pages:
                         text = page.extract_text()
                         if text:
-                            all_text += text + "\n"
+                            # Split by double newlines or punctuation blocks to get paragraphs
+                            lines = text.split("\n\n")
+                            for line in lines:
+                                clean_line = line.strip()
+                                if len(clean_line) > 40:  # Skip empty noise lines
+                                    paragraphs.append(clean_line)
                 except Exception as e:
-                    st.warning(f"Could not parse {file}: {e}")
-    return all_text
+                    pass
+    return paragraphs
 
-with st.spinner("Indexing uploaded documentation segments in the cloud..."):
-    full_document_context = load_and_process_docs()
+with st.spinner("Processing documents into lightweight segments..."):
+    document_chunks = load_and_chunk_docs()
 
 # 3. Handle Chat Layout & State
 if "messages" not in st.session_state:
@@ -50,16 +54,37 @@ if prompt := st.chat_input("Ask a question about the operational documentation..
     st.session_state.messages.append({"role": "user", "content": prompt})
 
     with st.chat_message("assistant"):
-        with st.spinner("Analyzing documentation and generating response..."):
+        with st.spinner("Retrieving segments and calling assistant..."):
             
-            # Construct the grounded prompt instructions passing the full text context
+            # Smart scoring context lookup
+            query_words = set(prompt.lower().split())
+            scored_chunks = []
+            
+            for chunk in document_chunks:
+                chunk_lower = chunk.lower()
+                # Count how many unique question words exist in this paragraph chunk
+                score = sum(1 for word in query_words if word in chunk_lower)
+                if score > 0:
+                    scored_chunks.append((score, chunk))
+            
+            # Sort by highest match score and take the top 3 snippets
+            scored_chunks.sort(key=lambda x: x[0], reverse=True)
+            top_matches = [item[1] for item in scored_chunks[:3]]
+            
+            # Fallback if no matching keywords are found at all
+            if not top_matches:
+                relevant_context = "\n".join(document_chunks[:2])
+            else:
+                relevant_context = "\n---\n".join(top_matches)
+
+            # Grounded System Prompt
             system_instruction = f"""
-            You are a helpful operational assistant. Answer the user's question accurately using ONLY the provided documentation context below. 
-            Scan the entire context carefully to find answers, even if different phrasing or synonyms are used.
-            If the answer cannot be found in the context after careful scanning, politely state: "The provided documentation does not contain information on..."
+            You are a helpful operational assistant. Answer the user's question accurately using ONLY the provided documentation context snippets below.
+            If the answer cannot be found in the provided snippets, state: "The documentation context does not contain clear info on this query."
+             Do not use any outside knowledge.
             
-            DOCUMENTATION CONTEXT:
-            {full_document_context[:50000]}  # Safely passes up to ~12,000 words of data text
+            DOCUMENTATION SNIPPETS:
+            {relevant_context}
             """
             
             try:
@@ -68,12 +93,16 @@ if prompt := st.chat_input("Ask a question about the operational documentation..
                     contents=prompt,
                     config={
                         "system_instruction": system_instruction,
-                        "temperature": 0.1  # Keeps responses strictly grounded to your docs
+                        "temperature": 0.1
                     }
                 )
                 answer = response.text
             except Exception as e:
-                answer = f"Error calling Gemini API: {e}"
+                # Give a clean countdown hint if a rate limit still triggers
+                if "429" in str(e):
+                    answer = "⚠️ Rate limit paused. Streamlit is waiting for the free API quota window to clear. Please try your question again in 10 seconds!"
+                else:
+                    answer = f"Error: {e}"
 
             st.markdown(answer)
             st.session_state.messages.append({"role": "assistant", "content": answer})
