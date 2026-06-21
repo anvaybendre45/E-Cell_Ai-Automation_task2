@@ -6,9 +6,8 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 class DocumentProcessor:
     def __init__(self, chunk_size: int = 500, chunk_overlap: int = 50):
-        """
-        Initializes Stage 1 with dynamic, customizable hyperparameter controls.
-        """
+        # Initializes Stage 1 with dynamic, customizable hyperparameter controls.
+        
         self.chunk_size = chunk_size
         self.chunk_overlap = chunk_overlap
         
@@ -28,21 +27,17 @@ class DocumentProcessor:
         if not text:
             return ""
 
-        # 1. Remove common repeating page number artifacts (e.g., "Page 1 of 10", "Page - 5", [Page 12])
+        # Remove common repeating page number artifacts
         text = re.sub(re.compile(r'page\s*[-–_]?\s*\d+(\s*of\s*\d+)?', re.IGNORECASE), '', text)
         text = re.sub(re.compile(r'\[\s*page\s*\d+\s*\]', re.IGNORECASE), '', text)
         
-        # 2. Strip standalone trailing or leading line numbers/isolated page digits
+        # Strip standalone trailing or leading line numbers/isolated page digits
         text = re.sub(re.compile(r'^\s*\d+\s*$', re.MULTILINE), '', text)
 
-        # 3. Strip repeating institutional/branding footer strings (Customized for E-Cell tasks)
-        text = re.sub(re.compile(r'=\s*E-CELL\s*NIT\s*TRICHY', re.IGNORECASE), '', text)
-        text = re.sub(re.compile(r'E-CELL\s*NITTRICHY', re.IGNORECASE), '', text)
-
-        # 4. Normalize broken hyphenated words at line breaks (e.g., "docu-\nmentation" -> "documentation")
+        # Normalize broken hyphenated words at line breaks
         text = re.sub(re.compile(r'(\w+)-\n(\w+)'), r'\1\2', text)
 
-        # 5. Collapse multi-spacing variants and consecutive newlines into clean single breaks
+        # Collapse multi-spacing variants and consecutive newlines into clean single breaks
         text = re.sub(re.compile(r'[ \t]+'), ' ', text)
         text = re.sub(re.compile(r'\n\s*\n+'), '\n\n', text)
 
@@ -118,7 +113,6 @@ class DocumentProcessor:
         return all_chunks
 
 if __name__ == "__main__":
-    print("Testing Upgraded Stage 1 Script with custom hyperparameters and text scrubbing filters...")
     
     # PROVING CONFIGURABILITY: Explicitly passing custom parameters down to the initialization loop
     CUSTOM_CHUNK_SIZE = 600
