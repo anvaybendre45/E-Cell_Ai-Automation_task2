@@ -1,11 +1,5 @@
 streamlit>=1.30.0
-requests
-fastapi
-uvicorn
-pydantic
-langchain
 pypdf
-chromadb>=0.4.0
-sentence-transformers
-rank-bm25
 google-genai
+pydantic
+langchain-text-splitters
