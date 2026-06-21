@@ -8,7 +8,7 @@ st.set_page_config(page_title="RAG Documentation Chatbot", page_icon="🤖")
 st.title("🤖 Operational Docs Assistant")
 st.caption("Grounded interactive pipeline querying operational segments entirely in the cloud.")
 
-# 1. Initialize Gemini Client
+# Initialize Gemini Client
 api_key = os.environ.get("GEMINI_API_KEY") or st.secrets.get("GEMINI_API_KEY")
 if not api_key:
     st.error("Missing GEMINI_API_KEY! Please add it to your Streamlit App Secrets.")
@@ -16,7 +16,7 @@ if not api_key:
 
 client = genai.Client(api_key=api_key)
 
-# 2. Extract Document Content cleanly
+# Extract Document Content cleanly
 @st.cache_resource
 def load_and_process_docs():
     all_text = ""
@@ -37,7 +37,7 @@ def load_and_process_docs():
 with st.spinner("Indexing uploaded documentation segments in the cloud..."):
     full_document_context = load_and_process_docs()
 
-# 3. Handle Chat Layout & State
+# Handle Chat Layout & State
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
